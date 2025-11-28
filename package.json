@@ -4,12 +4,9 @@
   "description": "Next.js SDK for Enfyra CMS",
   "repository": {
     "type": "git",
-    "url": "https://github.com/dothinh115/enfyra-sdk-next.git"
+    "url": "https://github.com/enfyra/sdk-next"
   },
-  "bugs": {
-    "url": "https://github.com/dothinh115/enfyra-sdk-next/issues"
-  },
-  "homepage": "https://github.com/dothinh115/enfyra-sdk-next#readme",
+  "homepage": "https://github.com/enfyra/sdk-next#readme",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
