@@ -16,10 +16,7 @@ The package will automatically scaffold **proxy + auth API routes** into your Ne
 - `app/enfyra/api/logout/route.ts`
 - `proxy.ts` (replaces the legacy `middleware.ts`)
 
-> **Important:**  
-> - Bạn **không nên xóa hoặc đổi tên** các file này trừ khi bạn thực sự muốn override hành vi mặc định.  
-> - Nếu lỡ xóa, chỉ cần cài lại SDK (`npm install @enfyra/sdk-next` hoặc `yarn add @enfyra/sdk-next`) hoặc restart dev/build để plugin tự copy lại (idempotent – không ghi đè file đã tồn tại).  
-> - Nếu bạn vẫn còn `middleware.ts`, hãy rename thành `proxy.ts` theo hướng dẫn chính thức của Next.js để tránh warnings về deprecated middleware file convention.[^next-proxy]
+If you need to override (for example, customize the login route), just edit the generated files directly. If you delete them by mistake, reinstalling the SDK or running dev/build will re-copy everything. For Next.js ≥16, use `proxy.ts` instead of `middleware.ts` to avoid the deprecated file warning.[^next-proxy]
 
 ## Setup
 
