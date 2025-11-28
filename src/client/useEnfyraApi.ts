@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react';
 import type { ApiOptions, ApiError, ExecuteOptions, BatchProgress } from '../types';
 import { ENFYRA_API_PREFIX } from '../constants/config';
+import { joinUrl } from '../utils/url';
 
 interface UseEnfyraApiReturn<T> {
   data: T | null;
@@ -111,7 +112,7 @@ export function useEnfyraApi<T = any>(
           const responses = await processBatch(
             executeOpts.ids,
             async (id) => {
-              const url = `${apiPrefix}/${cleanPath}/${id}`;
+              const url = joinUrl(apiPrefix, cleanPath, String(id));
               return fetchEnfyraUrl<T>(url, method, finalBody, finalQuery);
             },
             effectiveBatchSize,
@@ -127,7 +128,7 @@ export function useEnfyraApi<T = any>(
           const responses = await processBatch(
             executeOpts.files,
             async (fileObj: FormData) => {
-              const url = `${apiPrefix}/${cleanPath}`;
+              const url = joinUrl(apiPrefix, cleanPath);
               return fetchEnfyraUrl<T>(url, method, fileObj, finalQuery);
             },
             effectiveBatchSize,
@@ -140,8 +141,8 @@ export function useEnfyraApi<T = any>(
         }
 
         const finalPath = executeOpts?.id
-          ? `${apiPrefix}/${cleanPath}/${executeOpts.id}`
-          : `${apiPrefix}/${cleanPath}`;
+          ? joinUrl(apiPrefix, cleanPath, String(executeOpts.id))
+          : joinUrl(apiPrefix, cleanPath);
 
         const response = await fetchEnfyraUrl<T>(finalPath, method, finalBody, finalQuery);
         setData(response);

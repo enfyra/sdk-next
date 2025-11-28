@@ -2,6 +2,7 @@ import { cookies } from 'next/headers';
 import { validateTokens, refreshAccessToken } from './utils/refreshToken';
 import { ACCESS_TOKEN_KEY } from '../constants/auth';
 import { ENFYRA_API_PREFIX } from '../constants/config';
+import { joinUrl } from '../utils/url';
 
 export interface FetchEnfyraApiOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
@@ -58,7 +59,8 @@ export async function fetchEnfyraApi<T = any>(
   const cleanPath = rawPath.replace(/^\/+/, '');
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
     (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
-  const url = new URL(`${apiPrefix}/${cleanPath}`, baseUrl);
+  const fullPath = joinUrl(apiPrefix, cleanPath);
+  const url = new URL(fullPath, baseUrl);
 
   const mergedQuery: Record<string, any> | undefined = {
     ...(baseQuery || {}),

@@ -16,6 +16,8 @@ The package will automatically scaffold **proxy + auth API routes** into your Ne
 - `app/enfyra/api/logout/route.ts`
 - `proxy.ts` (replaces the legacy `middleware.ts`)
 
+Each of these files simply re-export the SDK’s built-in handlers, so your app stays clean while still allowing overrides when needed.
+
 If you need to override (for example, customize the login route), just edit the generated files directly. If you delete them by mistake, reinstalling the SDK or running dev/build will re-copy everything. For Next.js ≥16, use `proxy.ts` instead of `middleware.ts` to avoid the deprecated file warning.[^next-proxy]
 
 ## Setup
@@ -177,12 +179,56 @@ export function AuthButton() {
    - `app/enfyra/api/login/route.ts`
    - `app/enfyra/api/logout/route.ts`
    - `proxy.ts`
-2. **Proxy**: Handles all `/enfyra/api/**` và `/assets/**` requests, forward tới Enfyra backend (ứng dụng vẫn có thể ghi đè nếu cần)
+2. **Proxy**: Handles all `/enfyra/api/**` and `/assets/**` requests, forwards to Enfyra backend (can be customized if needed)
 3. **Token Management**: Automatically validates and refreshes access tokens
 4. **API Routes**: Login/logout routes handle authentication cookies
+
+## Customization
+
+### Customizing Proxy Matcher Patterns
+
+By default, the proxy matches `/enfyra/api/**` and `/assets/**` routes. You can customize the matcher patterns in two ways:
+
+You can customize the matcher patterns by editing the `proxy.ts` file directly:
+
+```typescript
+// proxy.ts
+import { NextRequest, NextResponse } from 'next/server';
+import { enfyraProxy } from '@enfyra/sdk-next/proxy';
+
+export async function proxy(request: NextRequest) {
+  // Add your custom logic here if needed
+  return enfyraProxy(request);
+}
+
+// Add your custom routes to matcher
+export const config = {
+  matcher: [
+    '/enfyra/api/:path*', // SDK route
+    '/assets/:path*', // SDK route
+    '/api/custom/:path*', // Your custom route
+  ],
+};
+```
+
+**Note:** Next.js requires `config.matcher` to be a static array - you cannot use spread operators or variables. You must list all matcher patterns directly.
+
+### Customizing API Routes
+
+You can also customize the login/logout routes by editing the generated route files:
+
+```typescript
+// app/enfyra/api/login/route.ts
+export { POST } from '@enfyra/sdk-next/routes/login';
+
+// Or implement your own:
+// export async function POST(request: NextRequest) {
+//   // Your custom implementation
+// }
+```
 
 ## License
 
 MIT
 
-[^next-proxy]: Next.js 16 rename `middleware.ts` → `proxy.ts`. Tham khảo thông báo chính thức: [Renaming Middleware to Proxy](https://nextjs.org/docs/messages/middleware-to-proxy).
+[^next-proxy]: Next.js 16 renamed `middleware.ts` → `proxy.ts`. See the official announcement: [Renaming Middleware to Proxy](https://nextjs.org/docs/messages/middleware-to-proxy).

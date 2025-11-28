@@ -2,6 +2,7 @@ import type { NextConfig } from 'next';
 import { execSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { ENFYRA_API_PREFIX } from './constants/config';
 
 export interface EnfyraConfig {
   apiUrl: string;
@@ -171,11 +172,12 @@ export function withEnfyra(
       : '';
 
   // Store config in env for runtime access
+  const apiPrefix = enfyraSDK?.apiPrefix || ENFYRA_API_PREFIX;
   const env = {
     ...nextConfig.env,
     ENFYRA_API_URL: normalizedApiUrl,
-    ENFYRA_API_PREFIX: enfyraSDK?.apiPrefix || '/enfyra/api',
-    NEXT_PUBLIC_ENFYRA_API_PREFIX: enfyraSDK?.apiPrefix || '/enfyra/api',
+    ENFYRA_API_PREFIX: apiPrefix,
+    NEXT_PUBLIC_ENFYRA_API_PREFIX: apiPrefix,
   };
 
   return {

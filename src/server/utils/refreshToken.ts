@@ -5,6 +5,7 @@ import {
   REFRESH_TOKEN_KEY,
   EXP_TIME_KEY,
 } from '../../constants/auth';
+import { joinUrl } from '../../utils/url';
 
 interface TokenValidationResult {
   accessToken: string | null;
@@ -80,11 +81,12 @@ export async function refreshAccessToken(
   apiUrl: string
 ): Promise<string> {
   try {
+    const refreshUrl = joinUrl(apiUrl, '/auth/refresh-token');
     const response = await $fetch<{
       accessToken: string;
       refreshToken: string;
       expTime: number;
-    }>(`${apiUrl}/auth/refresh-token`, {
+    }>(refreshUrl, {
       method: 'POST',
       body: { refreshToken },
     });
@@ -122,11 +124,12 @@ export async function refreshAccessTokenForMiddleware(
   refreshToken: string,
   apiUrl: string
 ): Promise<{ accessToken: string; refreshToken: string; expTime: number }> {
+  const refreshUrl = joinUrl(apiUrl, '/auth/refresh-token');
   const response = await $fetch<{
     accessToken: string;
     refreshToken: string;
     expTime: number;
-  }>(`${apiUrl}/auth/refresh-token`, {
+  }>(refreshUrl, {
     method: 'POST',
     body: { refreshToken },
   });

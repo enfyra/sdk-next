@@ -62,5 +62,24 @@ export default defineConfig([
     },
     external: [],
   },
+  // Proxy and route handlers
+  {
+    entry: {
+      proxy: 'src/proxy.ts',
+      'routes/login': 'src/routes/login.ts',
+      'routes/logout': 'src/routes/logout.ts',
+    },
+    format: ['cjs', 'esm'],
+    dts: true,
+    splitting: false,
+    sourcemap: true,
+    outDir: 'dist',
+    outExtension({ format }) {
+      return {
+        js: format === 'cjs' ? '.cjs' : '.mjs',
+      };
+    },
+    external: ['next', 'react', 'react-dom', 'ofetch'],
+  },
 ]);
 

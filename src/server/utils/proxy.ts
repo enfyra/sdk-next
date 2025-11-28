@@ -1,11 +1,11 @@
 import { ENFYRA_API_PREFIX } from '../../constants/config';
+import { joinUrl } from '../../utils/url';
 
 export function getProxyUrl(path: string, apiUrl: string, apiPrefix: string = ENFYRA_API_PREFIX): string {
   // Remove apiPrefix from path if present
   const cleanPath = path.replace(new RegExp(`^${apiPrefix}`), '');
-  // Ensure path starts with /
-  const normalizedPath = cleanPath.startsWith('/') ? cleanPath : `/${cleanPath}`;
-  return `${apiUrl}${normalizedPath}`;
+  // Join URL parts avoiding double slashes
+  return joinUrl(apiUrl, cleanPath);
 }
 
 export async function proxyRequest(
