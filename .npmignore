@@ -1,0 +1,36 @@
+# Development
+playground/
+docs/
+scripts/
+.next/
+*.log
+
+# Source (only publish dist)
+src/
+*.ts
+!*.d.ts
+
+# Config files
+tsconfig.json
+tsup.config.ts
+.eslintrc
+.prettierrc
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+
+# Dependencies
+node_modules/
+
+# macOS
+.DS_Store
+
+# Build artifacts
+.cache/
+.tmp/
+
