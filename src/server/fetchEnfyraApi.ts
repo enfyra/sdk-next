@@ -21,7 +21,19 @@ export async function fetchEnfyraApi<T = any>(
   const apiPrefix = process.env.ENFYRA_API_PREFIX || ENFYRA_API_PREFIX;
 
   if (!apiUrl) {
-    throw new Error('ENFYRA_API_URL is not configured');
+    const apiError: ApiError = {
+      message: 'ENFYRA_API_URL is not configured',
+      status: 500,
+    };
+    if (options.onError) {
+      options.onError(apiError, options.errorContext);
+    } else {
+      console.error(`[Enfyra API Error] ${apiError.message}`, {
+        status: apiError.status,
+        context: options.errorContext,
+      });
+    }
+    return { data: null, error: apiError };
   }
 
   const { accessToken, needsRefresh } = await validateTokens();
