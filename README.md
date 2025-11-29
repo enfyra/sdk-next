@@ -70,12 +70,12 @@ ENFYRA_API_URL=http://localhost:1105
 Fetch data directly in Server Components for optimal performance. The `fetchEnfyraApi` function returns `{ data, error }` instead of throwing errors:
 
 ```typescript
-// app/users/page.tsx
+// app/user_definition/page.tsx
 import { fetchEnfyraApi, type ApiError } from '@enfyra/sdk-next';
 
 export default async function UsersPage() {
   const { data: users, error }: { data: any[] | null; error: ApiError | null } = 
-    await fetchEnfyraApi('/users');
+    await fetchEnfyraApi('/user_definition');
   
   if (error) {
     return (
@@ -102,15 +102,15 @@ export default async function UsersPage() {
 **With Query Parameters:**
 
 ```typescript
-// app/users/page.tsx
+// app/user_definition/page.tsx
 import { fetchEnfyraApi, type ApiError } from '@enfyra/sdk-next';
 
 export default async function UsersPage() {
   // Method 1: Query in path
-  const { data: users, error } = await fetchEnfyraApi('/users?fields=id,name,email');
+  const { data: users, error } = await fetchEnfyraApi('/user_definition?fields=id,name,email');
   
   // Method 2: Query in options
-  const { data: filteredUsers, error: filterError } = await fetchEnfyraApi('/users', {
+  const { data: filteredUsers, error: filterError } = await fetchEnfyraApi('/user_definition', {
     query: {
       fields: 'id,name,email',
       status: 'active',
@@ -163,7 +163,7 @@ import { useEnfyraApi } from '@enfyra/sdk-next';
 import { useState } from 'react';
 
 export function UsersList() {
-  const { data, error, pending, execute } = useEnfyraApi('/users');
+  const { data, error, pending, execute } = useEnfyraApi('/user_definition');
 
   if (pending) return <div>Loading...</div>;
   if (error) return <div>Error: {error.message}</div>;
@@ -187,7 +187,7 @@ import { useEnfyraApi } from '@enfyra/sdk-next';
 import { useState } from 'react';
 
 export function CreateUserForm() {
-  const { execute, pending, error, data } = useEnfyraApi('/users', {
+  const { execute, pending, error, data } = useEnfyraApi('/user_definition', {
     method: 'post',
     errorContext: 'Create User'
   });
@@ -239,7 +239,7 @@ export function CreateUserForm() {
 import { useEnfyraApi } from '@enfyra/sdk-next';
 
 export function UpdateUserForm({ userId }: { userId: string }) {
-  const { execute, pending, error } = useEnfyraApi('/users', {
+  const { execute, pending, error } = useEnfyraApi('/user_definition', {
     method: 'patch',
     errorContext: 'Update User'
   });
@@ -269,7 +269,7 @@ export function UpdateUserForm({ userId }: { userId: string }) {
 import { useEnfyraApi } from '@enfyra/sdk-next';
 
 export function DeleteUserButton({ userId }: { userId: string }) {
-  const { execute, pending, error } = useEnfyraApi('/users', {
+  const { execute, pending, error } = useEnfyraApi('/user_definition', {
     method: 'delete',
     errorContext: 'Delete User'
   });
@@ -298,7 +298,7 @@ import { useEnfyraApi } from '@enfyra/sdk-next';
 export function FilteredUsers() {
   const [status, setStatus] = useState('active');
   
-  const { data, error, pending, execute } = useEnfyraApi('/users', {
+  const { data, error, pending, execute } = useEnfyraApi('/user_definition', {
     query: {
       fields: 'id,name,email',
       status: status,
@@ -325,7 +325,7 @@ export function FilteredUsers() {
 import { useEnfyraApi } from '@enfyra/sdk-next';
 
 export function UserDetails({ userId }: { userId: string }) {
-  const { data, error, pending } = useEnfyraApi(() => `/users/${userId}`, {
+  const { data, error, pending } = useEnfyraApi(() => `/user_definition/${userId}`, {
     query: {
       fields: 'id,name,email,role.*',
     }
@@ -348,7 +348,7 @@ import { useEnfyraApi } from '@enfyra/sdk-next';
 import { useState } from 'react';
 
 export function BulkDeleteUsers() {
-  const { execute, pending } = useEnfyraApi('/users', {
+  const { execute, pending } = useEnfyraApi('/user_definition', {
     method: 'delete',
     batchSize: 10,
     concurrent: 5,
@@ -521,7 +521,7 @@ import { useEnfyraApi } from '@enfyra/sdk-next';
 import type { ApiError } from '@enfyra/sdk-next';
 
 export function UserListWithErrorHandling() {
-  const { data, error, pending, execute } = useEnfyraApi('/users', {
+  const { data, error, pending, execute } = useEnfyraApi('/user_definition', {
     errorContext: 'Fetch Users',
     onError: (error: ApiError, context?: string) => {
       console.error(`[${context}]`, error);
