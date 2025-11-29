@@ -69,8 +69,12 @@ ENFYRA_API_URL=http://localhost:1105
 
 ### Server Components (SSR)
 
-Use **`fetchEnfyraApi`** hook **_for optimal performance in Server Components_**.
+Use **`fetchEnfyraApi`** function **_for optimal performance in Server Components_**.
 It returns `{ data, error }` instead of throwing errors.
+
+**✅ Automatic Execution**
+
+The `fetchEnfyraApi` function **automatically executes** the request when called. Unlike the client-side hook, you don't need to call any execute function - the request runs immediately when you await the function.
 
 ```typescript
 // app/user_definition/page.tsx
@@ -120,7 +124,6 @@ export default async function UsersPage() {
     {
       query: {
         fields: "id,name,email",
-        status: "active",
         limit: 10,
       },
     }
@@ -163,6 +166,10 @@ export default async function CustomHeadersPage() {
 
 ### `fetchEnfyraApi<T>(path, options?)`
 
+**✅ Automatic Execution**
+
+This function **automatically executes** the API request when called. Simply `await` the function and it will immediately make the request. Unlike the client-side `useEnfyraApi` hook, you do not need to call any execute function.
+
 **Parameters:**
 
 - `path` (string): API endpoint path
@@ -176,7 +183,7 @@ export default async function CustomHeadersPage() {
 
 **Returns:** `Promise<{ data: T | null; error: ApiError | null }>`
 
-The function returns an object with `data` and `error` properties, allowing you to handle errors gracefully without try/catch blocks.
+The function returns an object with `data` and `error` properties, allowing you to handle errors gracefully without try/catch blocks. The request executes automatically when you await the function.
 
 #
 
@@ -184,13 +191,30 @@ The function returns an object with `data` and `error` properties, allowing you 
 
 Use the **`useEnfyraApi`** hook **_for client-side data fetching and mutations_**:
 
+**⚠️ Important: Manual Execution Required**
+
+The `useEnfyraApi` hook does **NOT** automatically execute requests. Unlike `fetchEnfyraApi` used in Server Components (which executes automatically), the client hook requires you to **manually call `execute()`** to trigger the API request.
+
+**You must call `execute()` in:**
+- `useEffect` hooks (for component mount or dependency changes)
+- Event handlers (button clicks, form submissions)
+- User interactions (when user triggers an action)
+- Any other place where you want to trigger the request
+
+**The hook will NOT execute automatically on mount or when dependencies change.**
+
 ```typescript
 "use client";
 import { useEnfyraApi } from "@enfyra/sdk-next";
-import { useState } from "react";
+import { useEffect } from "react";
 
 export function UsersList() {
   const { data, error, pending, execute } = useEnfyraApi("/user_definition");
+
+  // ⚠️ MUST call execute() manually - the hook does NOT execute automatically
+  useEffect(() => {
+    execute();
+  }, [execute]);
 
   if (pending) return <div>Loading...</div>;
   if (error) return <div>Error: {error.message}</div>;
@@ -313,6 +337,7 @@ export function DeleteUserButton({ userId }: { userId: string }) {
 ```typescript
 "use client";
 import { useEnfyraApi } from "@enfyra/sdk-next";
+import { useState, useEffect } from "react";
 
 export function FilteredUsers() {
   const [status, setStatus] = useState("active");
@@ -324,6 +349,11 @@ export function FilteredUsers() {
       limit: 20,
     },
   });
+
+  // ⚠️ MUST call execute() manually when status changes
+  useEffect(() => {
+    execute();
+  }, [status, execute]);
 
   return (
     <div>
@@ -342,9 +372,10 @@ export function FilteredUsers() {
 ```typescript
 "use client";
 import { useEnfyraApi } from "@enfyra/sdk-next";
+import { useEffect } from "react";
 
 export function UserDetails({ userId }: { userId: string }) {
-  const { data, error, pending } = useEnfyraApi(
+  const { data, error, pending, execute } = useEnfyraApi(
     () => `/user_definition/${userId}`,
     {
       query: {
@@ -352,6 +383,11 @@ export function UserDetails({ userId }: { userId: string }) {
       },
     }
   );
+
+  // ⚠️ MUST call execute() manually when userId changes
+  useEffect(() => {
+    execute();
+  }, [userId, execute]);
 
   if (pending) return <div>Loading...</div>;
   if (error) return <div>Error: {error.message}</div>;
@@ -477,6 +513,19 @@ export function UserListWithErrorHandling() {
 
 #### `useEnfyraApi<T>(path, options?)`
 
+**⚠️ Manual Execution Required**
+
+This hook does **NOT** automatically execute requests. Unlike `fetchEnfyraApi` (used in Server Components) which executes automatically when called, this client hook requires you to **manually call `execute()`** to trigger the API request.
+
+**You must call `execute()` manually in:**
+- `useEffect` hooks (for component mount or when dependencies change)
+- Button click handlers (for user-triggered actions)
+- Form submission handlers (for POST/PUT/PATCH/DELETE operations)
+- Event handlers (any user interaction that should trigger a request)
+- When you need to refresh or retry data
+
+**The hook will NOT execute automatically on mount, dependency changes, or any other time.**
+
 ##### **Parameters:**
 
 - `path` (string | function): API endpoint path. Can be a function that returns a path for dynamic routes.
@@ -497,7 +546,11 @@ export function UserListWithErrorHandling() {
 - `data`: T | null - Response data
 - `error`: ApiError | null - Error object
 - `pending`: boolean - Loading state
-- `execute`: (options?: ExecuteOptions) => Promise<T | T[] | null> - Execute function
+- `execute`: (options?: ExecuteOptions) => Promise<T | T[] | null> - **Execute function (MUST be called manually)**
+
+**State Management:**
+
+Each `useEnfyraApi` hook instance maintains its **own independent state** (`data`, `error`, `pending`). State is **NOT shared** between different hook instances. If you call `useEnfyraApi("/users")` in multiple components, each will have its own separate state.
 
 ##### **ExecuteOptions:**
 
@@ -514,7 +567,11 @@ export function UserListWithErrorHandling() {
 
 ### Authentication
 
-The `useEnfyraAuth` hook provides authentication functionality (managing user sessions):
+The `useEnfyraAuth` hook provides authentication functionality (managing user sessions).
+
+**✅ Shared Global State**
+
+Unlike `useEnfyraApi` which has independent state per instance, `useEnfyraAuth` uses **shared global state**. All components using `useEnfyraAuth` will share the same authentication state (`me`, `isLoggedIn`). When you call `login()`, `logout()`, or `fetchUser()` in one component, all other components using `useEnfyraAuth` will automatically receive the updated state.
 
 ```typescript
 "use client";
@@ -605,16 +662,60 @@ export function UserProfile() {
 }
 ```
 
+**Shared State Example:**
+
+Since `useEnfyraAuth` uses shared global state, multiple components will automatically sync:
+
+```typescript
+"use client";
+import { useEnfyraAuth } from "@enfyra/sdk-next";
+
+// Component A - Login button
+export function LoginButton() {
+  const { login, isLoggedIn } = useEnfyraAuth();
+  
+  const handleLogin = async () => {
+    await login({ email: "user@example.com", password: "password" });
+    // After login, ALL components using useEnfyraAuth will update automatically
+  };
+  
+  return <button onClick={handleLogin}>Login</button>;
+}
+
+// Component B - User info (in a different part of the app)
+export function UserInfo() {
+  const { me, isLoggedIn } = useEnfyraAuth();
+  
+  // This component will automatically update when Component A calls login()
+  // No need to pass props or use context - state is shared globally
+  if (!isLoggedIn) return <div>Please login</div>;
+  
+  return <div>Welcome, {me?.email}</div>;
+}
+
+// Component C - Logout button (somewhere else)
+export function LogoutButton() {
+  const { logout, isLoggedIn } = useEnfyraAuth();
+  
+  // When logout() is called, Components A and B will also update automatically
+  return isLoggedIn ? <button onClick={logout}>Logout</button> : null;
+}
+```
+
 #### `useEnfyraAuth()`
+
+**✅ Shared Global State**
+
+All instances of `useEnfyraAuth` share the same global authentication state. When you call `login()`, `logout()`, or `fetchUser()` in one component, all other components using `useEnfyraAuth` will automatically receive the updated state. No need for React Context or prop drilling.
 
 **Returns:**
 
-- `me`: User | null - Current user object
-- `login`: (payload: LoginPayload) => Promise<any> - Login function
-- `logout`: () => Promise<void> - Logout function
-- `fetchUser`: (options?: { fields?: string[] }) => Promise<void> - Fetch current user
-- `isLoggedIn`: boolean - Login status
-- `isLoading`: boolean - Loading state
+- `me`: User | null - Current user object (shared across all components)
+- `login`: (payload: LoginPayload) => Promise<any> - Login function (updates global state)
+- `logout`: () => Promise<void> - Logout function (updates global state)
+- `fetchUser`: (options?: { fields?: string[] }) => Promise<void> - Fetch current user (updates global state)
+- `isLoggedIn`: boolean - Login status (shared across all components)
+- `isLoading`: boolean - Loading state (per component instance)
 
 #
 

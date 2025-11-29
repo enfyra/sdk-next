@@ -1,28 +1,21 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import type { LoginPayload, User, UseEnfyraAuthReturn } from '../types';
 import { useEnfyraApi } from './useEnfyraApi';
+import { useAuthStore } from './store/authStore';
 
-let globalMe: User | null = null;
-let globalListeners: Set<() => void> = new Set();
-
-function notifyListeners() {
-  globalListeners.forEach((listener) => listener());
+interface AuthState {
+  me: User | null;
+  setMe: (user: User | null) => void;
+  clearAuth: () => void;
 }
 
 export function useEnfyraAuth(): UseEnfyraAuthReturn {
-  const [me, setMe] = useState<User | null>(globalMe);
+  const me = useAuthStore((state: AuthState) => state.me);
+  const setMe = useAuthStore((state: AuthState) => state.setMe);
+  const clearAuth = useAuthStore((state: AuthState) => state.clearAuth);
   const [isLoading, setIsLoading] = useState(false);
-
-  // Sync with global state
-  useEffect(() => {
-    const listener = () => setMe(globalMe);
-    globalListeners.add(listener);
-    return () => {
-      globalListeners.delete(listener);
-    };
-  }, []);
 
   const {
     execute: executeLogin,
@@ -59,9 +52,7 @@ export function useEnfyraAuth(): UseEnfyraAuthReturn {
         });
 
         if (!result) {
-          globalMe = null;
-          setMe(null);
-          notifyListeners();
+          clearAuth();
           return;
         }
 
@@ -72,14 +63,12 @@ export function useEnfyraAuth(): UseEnfyraAuthReturn {
             ? (anyResult.data[0] as User)
             : (anyResult as User);
 
-        globalMe = user || null;
-        setMe(globalMe);
-        notifyListeners();
+        setMe(user || null);
       } finally {
         setIsLoading(false);
       }
     },
-    [executeFetchUser]
+    [executeFetchUser, setMe, clearAuth]
   );
 
   const login = useCallback(
@@ -108,24 +97,20 @@ export function useEnfyraAuth(): UseEnfyraAuthReturn {
 
     try {
       await executeLogout();
-      globalMe = null;
-      setMe(null);
-      notifyListeners();
+      clearAuth();
 
       if (typeof window !== 'undefined') {
         window.location.reload();
       }
     } catch (error) {
-      globalMe = null;
-      setMe(null);
-      notifyListeners();
+      clearAuth();
       if (typeof window !== 'undefined') {
         window.location.reload();
       }
     } finally {
       setIsLoading(false);
     }
-  }, [executeLogout]);
+  }, [executeLogout, clearAuth]);
 
   const isLoggedIn = !!me;
 
