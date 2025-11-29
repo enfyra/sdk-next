@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import {
   ACCESS_TOKEN_KEY,
   REFRESH_TOKEN_KEY,
@@ -6,8 +6,8 @@ import {
 } from '../constants/auth';
 
 export async function POST(
-  request: NextRequest,
-  context?: { params?: Promise<Record<string, string>> }
+  request: any,
+  _context: { params: Promise<{}> }
 ) {
   const response = NextResponse.json({ success: true });
 

@@ -58,7 +58,6 @@ export function useEnfyraAuth(): UseEnfyraAuthReturn {
           query: queryParams,
         });
 
-        // If request failed, executeFetchUser already logged/handled error and returned null
         if (!result) {
           globalMe = null;
           setMe(null);
@@ -91,11 +90,9 @@ export function useEnfyraAuth(): UseEnfyraAuthReturn {
         const loginResult = await executeLogin({ body: payload });
 
         if (!loginResult) {
-          // Error is already handled and logged inside useEnfyraApi
           return null;
         }
 
-        // After successful login, fetch user
         await fetchUser();
 
         return loginResult;
@@ -138,6 +135,7 @@ export function useEnfyraAuth(): UseEnfyraAuthReturn {
     logout,
     fetchUser,
     isLoggedIn,
+    isLoading,
   };
 }
 

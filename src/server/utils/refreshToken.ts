@@ -19,7 +19,6 @@ export function decodeJWT(token: string): any {
       return null;
     }
 
-    // Decode the payload (second part)
     const payload = parts[1];
     const decodedPayload = Buffer.from(payload, 'base64url').toString('utf-8');
     return JSON.parse(decodedPayload);
@@ -34,8 +33,6 @@ export function isAccessTokenExpired(accessToken: string): boolean {
   if (!decoded || !decoded.exp) {
     return true;
   }
-
-  // JWT exp is in seconds, Date.now() is in milliseconds
   const expirationTime = decoded.exp * 1000;
   return Date.now() >= expirationTime;
 }

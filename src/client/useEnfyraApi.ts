@@ -33,139 +33,6 @@ function handleError(
   return apiError;
 }
 
-export function useEnfyraApi<T = any>(
-  path: string | (() => string),
-  opts: ApiOptions<T> = {}
-): UseEnfyraApiReturn<T> {
-  const { method = 'get', body, query, errorContext, onError } = opts;
-  const { batchSize, concurrent, onProgress } = opts as any;
-
-  const [data, setData] = useState<T | null>(null);
-  const [error, setError] = useState<ApiError | null>(null);
-  const [pending, setPending] = useState(false);
-
-  const execute = useCallback(
-    async (executeOpts?: ExecuteOptions): Promise<T | T[] | null> => {
-      setPending(true);
-      setError(null);
-
-      try {
-        const apiPrefix = 
-          (typeof window !== 'undefined' && (window as any).__ENFYRA_API_PREFIX__) ||
-          process.env.NEXT_PUBLIC_ENFYRA_API_PREFIX || 
-          ENFYRA_API_PREFIX;
-        let rawPath = typeof path === 'function' ? path() : path;
-
-        let baseQuery: Record<string, any> | undefined;
-        const queryIndex = rawPath.indexOf('?');
-        if (queryIndex !== -1) {
-          const pathPart = rawPath.slice(0, queryIndex);
-          const queryString = rawPath.slice(queryIndex + 1);
-          rawPath = pathPart || '/';
-
-          if (queryString) {
-            baseQuery = {};
-            queryString.split('&').forEach((part) => {
-              if (!part) return;
-              const [key, value] = part.split('=');
-              if (!key) return;
-              baseQuery![decodeURIComponent(key)] =
-                value !== undefined ? decodeURIComponent(value) : '';
-            });
-          }
-        }
-
-        const cleanPath = rawPath.replace(/^\/+/, '');
-
-        const finalBody = executeOpts?.body || body;
-        let finalQuery: Record<string, any> | undefined = {
-          ...(baseQuery || {}),
-          ...(query || {}),
-          ...(executeOpts?.query || {}),
-        };
-        if (finalQuery && Object.keys(finalQuery).length === 0) {
-          finalQuery = undefined;
-        }
-
-        const isBatchOperation =
-          !opts.disableBatch &&
-          ((executeOpts?.ids &&
-            executeOpts.ids.length > 0 &&
-            (method.toLowerCase() === 'patch' || method.toLowerCase() === 'delete')) ||
-            (method.toLowerCase() === 'post' &&
-              executeOpts?.files &&
-              Array.isArray(executeOpts.files) &&
-              executeOpts.files.length > 0));
-
-        const effectiveBatchSize = isBatchOperation
-          ? executeOpts?.batchSize ?? batchSize
-          : undefined;
-        const effectiveConcurrent = isBatchOperation
-          ? executeOpts?.concurrent ?? concurrent
-          : undefined;
-        const effectiveOnProgress = isBatchOperation
-          ? executeOpts?.onProgress ?? onProgress
-          : undefined;
-
-        if (isBatchOperation && executeOpts?.ids && executeOpts.ids.length > 0) {
-          // Batch operation with IDs
-          const responses = await processBatch(
-            executeOpts.ids,
-            async (id) => {
-              const url = joinUrl(apiPrefix, cleanPath, String(id));
-              return fetchEnfyraUrl<T>(url, method, finalBody, finalQuery);
-            },
-            effectiveBatchSize,
-            effectiveConcurrent,
-            effectiveOnProgress
-          );
-
-          setData(responses as T);
-          return responses;
-        }
-
-        if (isBatchOperation && executeOpts?.files && Array.isArray(executeOpts.files) && executeOpts.files.length > 0) {
-          const responses = await processBatch(
-            executeOpts.files,
-            async (fileObj: FormData) => {
-              const url = joinUrl(apiPrefix, cleanPath);
-              return fetchEnfyraUrl<T>(url, method, fileObj, finalQuery);
-            },
-            effectiveBatchSize,
-            effectiveConcurrent,
-            effectiveOnProgress
-          );
-
-          setData(responses as T);
-          return responses;
-        }
-
-        const finalPath = executeOpts?.id
-          ? joinUrl(apiPrefix, cleanPath, String(executeOpts.id))
-          : joinUrl(apiPrefix, cleanPath);
-
-        const response = await fetchEnfyraUrl<T>(finalPath, method, finalBody, finalQuery);
-        setData(response);
-        return response;
-      } catch (err) {
-        const apiError = handleError(err, errorContext, onError);
-        setError(apiError);
-        return null;
-      } finally {
-        setPending(false);
-      }
-    },
-    [path, method, body, query, errorContext, onError, opts.disableBatch, batchSize, concurrent, onProgress]
-  );
-
-  return {
-    data,
-    error,
-    pending,
-    execute,
-  };
-}
-
 async function fetchEnfyraUrl<T>(
   url: string,
   method: string,
@@ -182,9 +49,7 @@ async function fetchEnfyraUrl<T>(
     });
   }
 
-  // Debug: log final URL with query for troubleshooting
   if (process.env.NODE_ENV !== 'production') {
-    // eslint-disable-next-line no-console
     console.log('[Enfyra SDK] Fetching URL:', fullUrl.toString());
   }
 
@@ -195,7 +60,7 @@ async function fetchEnfyraUrl<T>(
   const fetchOptions: RequestInit = {
     method: method.toUpperCase(),
     headers,
-    credentials: 'include', // Include cookies for auth
+    credentials: 'include',
   };
 
   if (body && method.toUpperCase() !== 'GET') {
@@ -286,7 +151,6 @@ async function processBatch<T>(
   updateProgress(0);
 
   if (!batchSize && !concurrent) {
-    // Unlimited parallel
     updateProgress(items.length);
 
     const promises = items.map(async (item, index) => {
@@ -327,13 +191,11 @@ async function processBatch<T>(
     return batchResults;
   }
 
-  // Process in batches with concurrency control
   for (let chunkIndex = 0; chunkIndex < chunks.length; chunkIndex++) {
     currentBatch = chunkIndex;
     const chunk = chunks[chunkIndex];
 
     if (concurrent && chunk.length > concurrent) {
-      // Process chunk in smaller concurrent batches
       for (let i = 0; i < chunk.length; i += concurrent) {
         const batch = chunk.slice(i, i + concurrent);
         const baseIndex = chunkIndex * (batchSize || items.length) + i;
@@ -379,7 +241,6 @@ async function processBatch<T>(
         results.push(...batchResults);
       }
     } else {
-      // Process entire chunk
       const baseIndex = chunkIndex * (batchSize || items.length);
 
       updateProgress(chunk.length);
@@ -426,5 +287,137 @@ async function processBatch<T>(
 
   updateProgress(0);
   return results;
+}
+
+export function useEnfyraApi<T = any>(
+  path: string | (() => string),
+  opts: ApiOptions<T> = {}
+): UseEnfyraApiReturn<T> {
+  const { method = 'get', body, query, errorContext, onError } = opts;
+  const { batchSize, concurrent, onProgress } = opts as any;
+
+  const [data, setData] = useState<T | null>(null);
+  const [error, setError] = useState<ApiError | null>(null);
+  const [pending, setPending] = useState(false);
+
+  const execute = useCallback(
+    async (executeOpts?: ExecuteOptions): Promise<T | T[] | null> => {
+      setPending(true);
+      setError(null);
+
+      try {
+        const apiPrefix = 
+          (typeof window !== 'undefined' && (window as any).__ENFYRA_API_PREFIX__) ||
+          process.env.NEXT_PUBLIC_ENFYRA_API_PREFIX || 
+          ENFYRA_API_PREFIX;
+        let rawPath = typeof path === 'function' ? path() : path;
+
+        let baseQuery: Record<string, any> | undefined;
+        const queryIndex = rawPath.indexOf('?');
+        if (queryIndex !== -1) {
+          const pathPart = rawPath.slice(0, queryIndex);
+          const queryString = rawPath.slice(queryIndex + 1);
+          rawPath = pathPart || '/';
+
+          if (queryString) {
+            baseQuery = {};
+            queryString.split('&').forEach((part) => {
+              if (!part) return;
+              const [key, value] = part.split('=');
+              if (!key) return;
+              baseQuery![decodeURIComponent(key)] =
+                value !== undefined ? decodeURIComponent(value) : '';
+            });
+          }
+        }
+
+        const cleanPath = rawPath.replace(/^\/+/, '');
+
+        const finalBody = executeOpts?.body || body;
+        let finalQuery: Record<string, any> | undefined = {
+          ...(baseQuery || {}),
+          ...(query || {}),
+          ...(executeOpts?.query || {}),
+        };
+        if (finalQuery && Object.keys(finalQuery).length === 0) {
+          finalQuery = undefined;
+        }
+
+        const isBatchOperation =
+          !opts.disableBatch &&
+          ((executeOpts?.ids &&
+            executeOpts.ids.length > 0 &&
+            (method.toLowerCase() === 'patch' || method.toLowerCase() === 'delete')) ||
+            (method.toLowerCase() === 'post' &&
+              executeOpts?.files &&
+              Array.isArray(executeOpts.files) &&
+              executeOpts.files.length > 0));
+
+        const effectiveBatchSize = isBatchOperation
+          ? executeOpts?.batchSize ?? batchSize
+          : undefined;
+        const effectiveConcurrent = isBatchOperation
+          ? executeOpts?.concurrent ?? concurrent
+          : undefined;
+        const effectiveOnProgress = isBatchOperation
+          ? executeOpts?.onProgress ?? onProgress
+          : undefined;
+
+        if (isBatchOperation && executeOpts?.ids && executeOpts.ids.length > 0) {
+          const responses = await processBatch(
+            executeOpts.ids,
+            async (id) => {
+              const url = joinUrl(apiPrefix, cleanPath, String(id));
+              return fetchEnfyraUrl<T>(url, method, finalBody, finalQuery);
+            },
+            effectiveBatchSize,
+            effectiveConcurrent,
+            effectiveOnProgress
+          );
+
+          setData(responses as T);
+          return responses;
+        }
+
+        if (isBatchOperation && executeOpts?.files && Array.isArray(executeOpts.files) && executeOpts.files.length > 0) {
+          const responses = await processBatch(
+            executeOpts.files,
+            async (fileObj: FormData) => {
+              const url = joinUrl(apiPrefix, cleanPath);
+              return fetchEnfyraUrl<T>(url, method, fileObj, finalQuery);
+            },
+            effectiveBatchSize,
+            effectiveConcurrent,
+            effectiveOnProgress
+          );
+
+          setData(responses as T);
+          return responses;
+        }
+
+        const finalPath = executeOpts?.id
+          ? joinUrl(apiPrefix, cleanPath, String(executeOpts.id))
+          : joinUrl(apiPrefix, cleanPath);
+
+        const response = await fetchEnfyraUrl<T>(finalPath, method, finalBody, finalQuery);
+        setData(response);
+        return response;
+      } catch (err) {
+        const apiError = handleError(err, errorContext, onError);
+        setError(apiError);
+        return null;
+      } finally {
+        setPending(false);
+      }
+    },
+    [path, method, body, query, errorContext, onError, opts.disableBatch, batchSize, concurrent, onProgress]
+  );
+
+  return {
+    data,
+    error,
+    pending,
+    execute,
+  };
 }
 

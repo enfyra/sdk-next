@@ -1,20 +1,22 @@
 import { cookies } from 'next/headers';
 import { validateTokens, refreshAccessToken } from './utils/refreshToken';
-import { ACCESS_TOKEN_KEY } from '../constants/auth';
 import { ENFYRA_API_PREFIX } from '../constants/config';
 import { joinUrl } from '../utils/url';
+import type { ApiError } from '../types';
 
 export interface FetchEnfyraApiOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   body?: any;
   headers?: Record<string, string>;
   query?: Record<string, any>;
+  errorContext?: string;
+  onError?: (error: ApiError, context?: string) => void;
 }
 
 export async function fetchEnfyraApi<T = any>(
   path: string,
   options: FetchEnfyraApiOptions = {}
-): Promise<T> {
+): Promise<{ data: T | null; error: ApiError | null }> {
   const apiUrl = process.env.ENFYRA_API_URL;
   const apiPrefix = process.env.ENFYRA_API_PREFIX || ENFYRA_API_PREFIX;
 
@@ -32,6 +34,7 @@ export async function fetchEnfyraApi<T = any>(
       try {
         currentAccessToken = await refreshAccessToken(refreshToken, apiUrl);
       } catch (error) {
+        // Token refresh failed, proceed without token
       }
     }
   }
@@ -57,8 +60,7 @@ export async function fetchEnfyraApi<T = any>(
   }
 
   const cleanPath = rawPath.replace(/^\/+/, '');
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
-    (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
   const fullPath = joinUrl(apiPrefix, cleanPath);
   const url = new URL(fullPath, baseUrl);
 
@@ -102,19 +104,38 @@ export async function fetchEnfyraApi<T = any>(
     } catch {
       errorData = { message: response.statusText };
     }
-    throw {
-      message: errorData.message || 'Request failed',
+    
+    const apiError: ApiError = {
+      message: errorData?.message || errorData?.error?.message || response.statusText || 'Request failed',
       status: response.status,
       data: errorData,
       response,
     };
+
+    if (options.onError) {
+      options.onError(apiError, options.errorContext);
+    } else {
+      const errorMessage = apiError.message || 'Request failed';
+      const errorStatus = apiError.status || 'Unknown';
+      const errorContext = options.errorContext || 'Unknown context';
+      
+      console.error(`[Enfyra API Error] ${errorMessage}`, {
+        status: errorStatus,
+        context: errorContext,
+        ...(apiError.data && { data: apiError.data }),
+      });
+    }
+
+    return { data: null, error: apiError };
   }
 
   const contentType = response.headers.get('content-type');
   if (contentType?.includes('application/json')) {
-    return await response.json();
+    const json = await response.json();
+    return { data: json as T, error: null };
   }
 
-  return (await response.text()) as T;
+  const text = (await response.text()) as T;
+  return { data: text, error: null };
 }
 

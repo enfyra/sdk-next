@@ -31,5 +31,6 @@ export interface UseEnfyraAuthReturn {
   logout: () => Promise<void>;
   fetchUser: (options?: { fields?: string[] }) => Promise<void>;
   isLoggedIn: boolean;
+  isLoading: boolean;
 }
 

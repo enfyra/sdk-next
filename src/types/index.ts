@@ -50,6 +50,7 @@ interface BaseApiOptions<T> {
   errorContext?: string;
   onError?: (error: ApiError, context?: string) => void;
   disableBatch?: boolean;
+  ssr?: boolean;
 }
 
 interface BatchApiOptions {

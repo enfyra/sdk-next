@@ -104,8 +104,12 @@ const proxyTemplate = path.join(templatesDir, 'proxy.ts');
 const proxyDest = path.join(projectRoot, 'proxy.ts');
 
 if (fs.existsSync(proxyTemplate)) {
-  fs.copyFileSync(proxyTemplate, proxyDest);
-  console.log(`[Enfyra SDK] Copied proxy.ts (overwritten)`);
+  if (!fs.existsSync(proxyDest)) {
+    fs.copyFileSync(proxyTemplate, proxyDest);
+    console.log('[Enfyra SDK] Copied proxy.ts (created)');
+  } else {
+    console.log('[Enfyra SDK] proxy.ts already exists, skipping copy to preserve custom configuration');
+  }
 }
 
 console.log('[Enfyra SDK] Template copy completed.');

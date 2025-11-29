@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { $fetch } from 'ofetch';
 import {
   ACCESS_TOKEN_KEY,
@@ -10,8 +10,8 @@ import { joinUrl } from '../utils/url';
 const ENFYRA_API_URL = process.env.ENFYRA_API_URL || '';
 
 export async function POST(
-  request: NextRequest,
-  context?: { params?: Promise<Record<string, string>> }
+  request: any,
+  _context: { params: Promise<{}> }
 ) {
   if (!ENFYRA_API_URL) {
     return NextResponse.json(

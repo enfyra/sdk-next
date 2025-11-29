@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { validateTokensFromRequest, refreshAccessTokenForMiddleware } from './server/utils/refreshToken';
 import { getProxyUrl, proxyRequest } from './server/utils/proxy';
 import { ENFYRA_API_PREFIX, getEnfyraSDKConfig, type EnfyraSDKConfig } from './constants/config';
@@ -8,7 +8,7 @@ function createEnfyraProxy(config: EnfyraSDKConfig) {
   const ENFYRA_API_URL = config.apiUrl;
   const API_PREFIX = config.apiPrefix || ENFYRA_API_PREFIX;
 
-  return async function enfyraProxy(request: NextRequest) {
+  return async function enfyraProxy(request: any) {
   const { pathname } = request.nextUrl;
 
   if (pathname === `${API_PREFIX}/login` || pathname === `${API_PREFIX}/logout`) {
@@ -93,13 +93,11 @@ function createEnfyraProxy(config: EnfyraSDKConfig) {
   };
 }
 
-// Default proxy using config from plugin (via env variables)
-export async function enfyraProxy(request: NextRequest) {
+export async function enfyraProxy(request: any) {
   const config = getEnfyraSDKConfig();
   return createEnfyraProxy(config)(request);
 }
 
-// Export factory function and config getter
 export { createEnfyraProxy, getEnfyraSDKConfig };
 export type { EnfyraSDKConfig };
 

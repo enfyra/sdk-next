@@ -1,4 +1,3 @@
-import type { NextConfig } from 'next';
 import { execSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
@@ -19,24 +18,19 @@ export interface WithEnfyraOptions {
  */
 function ensureTemplatesCopied() {
   try {
-    // Find project root (where Next.js config is)
     const projectRoot = process.cwd();
     const appDir = join(projectRoot, 'app');
     const middlewarePath = join(projectRoot, 'middleware.ts');
     const apiRoutesPath = join(appDir, 'api', 'enfyra');
 
-    // Always try to copy if app directory exists (idempotent - won't overwrite existing files)
     if (existsSync(appDir)) {
       try {
-        // Try to find copy script from installed SDK
         let copyScript: string | null = null;
         
-        // Method 1: Try require.resolve
         try {
           const sdkPath = require.resolve('@enfyra/sdk-next/package.json');
           copyScript = join(sdkPath, '..', 'scripts', 'copy-templates.js');
         } catch (e) {
-          // Method 2: Try to find in node_modules
           const nodeModulesScript = join(projectRoot, 'node_modules', '@enfyra', 'sdk-next', 'scripts', 'copy-templates.js');
           if (existsSync(nodeModulesScript)) {
             copyScript = nodeModulesScript;
@@ -143,10 +137,9 @@ function ensureTemplatesCopied() {
  * - Middleware and API routes are automatically copied during package installation via `postinstall` script
  */
 export function withEnfyra(
-  nextConfig: NextConfig = {},
+  nextConfig: Record<string, any> = {},
   options: WithEnfyraOptions
-): NextConfig {
-  // Ensure templates are copied when plugin is loaded
+): Record<string, any> {
   ensureTemplatesCopied();
 
   const { enfyraSDK } = options;
@@ -165,13 +158,10 @@ export function withEnfyra(
     );
   }
 
-  // Normalize apiUrl
   const normalizedApiUrl =
     typeof enfyraSDK?.apiUrl === 'string'
       ? enfyraSDK.apiUrl.replace(/\/+$/, '')
       : '';
-
-  // Store config in env for runtime access
   const apiPrefix = enfyraSDK?.apiPrefix || ENFYRA_API_PREFIX;
   const env = {
     ...nextConfig.env,
