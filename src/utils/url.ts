@@ -1,12 +1,3 @@
-/**
- * Join URL parts together, avoiding double slashes
- * @param parts - URL parts to join (base URL, prefix, path, etc.)
- * @returns Joined URL string
- * @example
- * joinUrl('https://api.example.com', '/api', '/users') // 'https://api.example.com/api/users'
- * joinUrl('https://api.example.com/', '/api/', 'users') // 'https://api.example.com/api/users'
- * joinUrl('https://api.example.com', 'api', 'users') // 'https://api.example.com/api/users'
- */
 export function joinUrl(...parts: (string | undefined | null)[]): string {
   const validParts = parts.filter((part): part is string => 
     typeof part === 'string' && part.length > 0

@@ -37,9 +37,6 @@ export function isAccessTokenExpired(accessToken: string): boolean {
   return Date.now() >= expirationTime;
 }
 
-/**
- * Validate tokens from cookies (for Server Components and API Routes)
- */
 export async function validateTokens(): Promise<TokenValidationResult> {
   const cookieStore = await cookies();
   const accessToken = cookieStore.get(ACCESS_TOKEN_KEY)?.value || null;
@@ -54,9 +51,6 @@ export async function validateTokens(): Promise<TokenValidationResult> {
   return { accessToken: null, needsRefresh: false };
 }
 
-/**
- * Validate tokens from NextRequest (for Middleware)
- */
 export function validateTokensFromRequest(request: { cookies: { get: (name: string) => { value: string } | undefined } }): TokenValidationResult {
   const accessToken = request.cookies.get(ACCESS_TOKEN_KEY)?.value || null;
   const refreshToken = request.cookies.get(REFRESH_TOKEN_KEY)?.value || null;
@@ -70,9 +64,6 @@ export function validateTokensFromRequest(request: { cookies: { get: (name: stri
   return { accessToken: null, needsRefresh: false };
 }
 
-/**
- * Refresh access token (for Server Components/API Routes)
- */
 export async function refreshAccessToken(
   refreshToken: string,
   apiUrl: string
@@ -113,10 +104,6 @@ export async function refreshAccessToken(
   }
 }
 
-/**
- * Refresh access token for middleware (returns token only, doesn't set cookies)
- * Middleware should set cookies via NextResponse
- */
 export async function refreshAccessTokenForMiddleware(
   refreshToken: string,
   apiUrl: string

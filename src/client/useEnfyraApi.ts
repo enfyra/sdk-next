@@ -306,10 +306,7 @@ export function useEnfyraApi<T = any>(
       setError(null);
 
       try {
-        const apiPrefix = 
-          (typeof window !== 'undefined' && (window as any).__ENFYRA_API_PREFIX__) ||
-          process.env.NEXT_PUBLIC_ENFYRA_API_PREFIX || 
-          ENFYRA_API_PREFIX;
+        const apiPrefix = ENFYRA_API_PREFIX;
         let rawPath = typeof path === 'function' ? path() : path;
 
         let baseQuery: Record<string, any> | undefined;

@@ -1,21 +1,93 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { validateTokensFromRequest, refreshAccessTokenForMiddleware } from './server/utils/refreshToken';
 import { getProxyUrl, proxyRequest } from './server/utils/proxy';
 import { ENFYRA_API_PREFIX, getEnfyraSDKConfig, type EnfyraSDKConfig } from './constants/config';
 import { REFRESH_TOKEN_KEY, ACCESS_TOKEN_KEY, EXP_TIME_KEY } from './constants/auth';
+import { $fetch } from 'ofetch';
+import { joinUrl } from './utils/url';
 
 function createEnfyraProxy(config: EnfyraSDKConfig) {
   const ENFYRA_API_URL = config.apiUrl;
   const API_PREFIX = config.apiPrefix || ENFYRA_API_PREFIX;
 
-  return async function enfyraProxy(request: any) {
-  const { pathname } = request.nextUrl;
+  async function handleLogin(request: NextRequest) {
+    if (!ENFYRA_API_URL) {
+      return NextResponse.json(
+        { error: 'apiUrl is not configured in enfyra.config.ts' },
+        { status: 500 }
+      );
+    }
 
-  if (pathname === `${API_PREFIX}/login` || pathname === `${API_PREFIX}/logout`) {
-    return NextResponse.next();
+    try {
+      const body = await request.json();
+      const loginUrl = joinUrl(ENFYRA_API_URL, '/auth/login');
+      const response = await $fetch<any>(loginUrl, {
+        method: 'POST',
+        body,
+        headers: {
+          cookie: request.headers.get('cookie') || '',
+        },
+      });
+
+      const { accessToken, refreshToken, expTime } = response;
+
+      const cookieOptions = {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax' as const,
+        path: '/',
+      };
+
+      const nextResponse = NextResponse.json({ accessToken });
+      nextResponse.cookies.set(ACCESS_TOKEN_KEY, accessToken, cookieOptions);
+      nextResponse.cookies.set(REFRESH_TOKEN_KEY, refreshToken, cookieOptions);
+      nextResponse.cookies.set(EXP_TIME_KEY, String(expTime), cookieOptions);
+
+      return nextResponse;
+    } catch (err: any) {
+      const statusCode = err?.response?.status || err?.statusCode || 401;
+      const errorData = err?.response?._data || err?.data;
+
+      let errorMessage = 'Authentication failed';
+      let errorCode = 'AUTHENTICATION_ERROR';
+
+      if (errorData?.error) {
+        errorMessage = errorData.error.message || errorData.message || errorMessage;
+        errorCode = errorData.error.code || errorCode;
+      }
+
+      return NextResponse.json(
+        {
+          code: errorCode,
+          message: errorMessage,
+          details: errorData?.error?.details,
+          correlationId: errorData?.error?.correlationId,
+        },
+        { status: statusCode }
+      );
+    }
   }
 
-  if (pathname.startsWith(API_PREFIX) || pathname.startsWith('/assets/')) {
+  function handleLogout() {
+    const response = NextResponse.json({ success: true });
+    response.cookies.delete(ACCESS_TOKEN_KEY);
+    response.cookies.delete(REFRESH_TOKEN_KEY);
+    response.cookies.delete(EXP_TIME_KEY);
+    return response;
+  }
+
+  return async function enfyraProxy(request: NextRequest) {
+    const { pathname } = request.nextUrl;
+
+    if (pathname === `${API_PREFIX}/login` && request.method === 'POST') {
+      return handleLogin(request);
+    }
+
+    if (pathname === `${API_PREFIX}/logout` && request.method === 'POST') {
+      return handleLogout();
+    }
+
+  if (pathname.startsWith(API_PREFIX + '/') || pathname === API_PREFIX || pathname.startsWith('/assets/')) {
     const { accessToken, needsRefresh } = validateTokensFromRequest(request);
     let currentAccessToken = accessToken;
     let responseToReturn: NextResponse | null = null;
@@ -89,7 +161,7 @@ function createEnfyraProxy(config: EnfyraSDKConfig) {
     }
   }
 
-  return NextResponse.next();
+    return NextResponse.next();
   };
 }
 

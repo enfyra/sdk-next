@@ -17,3 +17,7 @@ export { ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY, EXP_TIME_KEY } from './constants/a
 // Utils
 export { getAppUrl } from './utils/url';
 
+
+// Types
+export type { EnfyraConfig } from './plugin';
+

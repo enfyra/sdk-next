@@ -8,51 +8,47 @@ Next.js SDK for **_Enfyra CMS_** - _A powerful React hooks-based API client with
 npm install @enfyra/sdk-next
 ```
 
-The package will automatically scaffold **proxy + auth API routes** into your Next.js app (following the renamed `proxy.ts` convention in Next.js 16).
+The package will automatically set up **proxy + config file** into your Next.js app (following the renamed `proxy.ts` convention in Next.js 16).
 
 **Files that will be created:**
 
-- `app/enfyra/api/login/route.ts` - Always overwritten on install/build/dev
-- `app/enfyra/api/logout/route.ts` - Always overwritten on install/build/dev
-- `proxy.ts` - Only copied if it doesn't exist (to preserve your custom configuration)
-
-The login/logout route files simply re-export the SDK's built-in handlers and cannot be customized. The `proxy.ts` file can be customized to add your own proxy logic.
+- `proxy.ts` - Automatically created or injected with Enfyra SDK integration (preserves your existing code)
+- `enfyra.config.ts` - Only copied if it doesn't exist (to preserve your custom configuration)
 
 **Important:**
 
-- **API routes** (`app/enfyra/api/*`) are always overwritten and cannot be customized - they are managed by the SDK
-- **`proxy.ts`** is only copied when it doesn't exist, so your custom proxy configuration is preserved
-- If you delete API routes by mistake, reinstalling the SDK or running dev/build will re-copy them
+- **`proxy.ts`** - If the file doesn't exist, the SDK creates it with Enfyra integration. If it already exists, the SDK injects Enfyra handling at the beginning of your `proxy()` function, preserving all your custom code.
+- **`enfyra.config.ts`** - Only copied when it doesn't exist, so your custom configurations are preserved
+- **No route files needed** - All API routes (login, logout, etc.) are handled directly in `proxy.ts` for maximum transparency
+- **No templates** - The SDK generates code directly, no template files are copied
 - For Next.js ≥16, use `proxy.ts` instead of `middleware.ts` to avoid the deprecated file warning[^next-proxy]
 
 ## Setup
 
-### 1. Configure Next.js
+### 1. Configure Enfyra SDK
 
-Add the plugin to your Next.js configuration file. The plugin accepts your existing Next.js config and Enfyra SDK options.
+The file `enfyra.config.ts` is automatically created in your **project root** (same directory as `package.json` and `next.config.ts`) when you install the package. If it doesn't exist, you can create it manually:
+
+**File location:** `./enfyra.config.ts` (project root)
 
 ```typescript
-// next.config.ts
-import type { NextConfig } from "next";
-import { withEnfyra } from "@enfyra/sdk-next/plugin";
+// enfyra.config.ts (in your project root)
+import type { EnfyraConfig } from '@enfyra/sdk-next';
 
-const nextConfig: NextConfig = {
-  reactStrictMode: true,
-  // ... your other Next.js config options
+const enfyraConfig: EnfyraConfig = {
+  apiUrl: process.env.ENFYRA_API_URL || 'http://localhost:1105',
+  apiPrefix: '/enfyra/api', // Optional, defaults to '/enfyra/api'
 };
 
-export default withEnfyra(nextConfig, {
-  enfyraSDK: {
-    apiUrl: process.env.ENFYRA_API_URL!,
-    apiPrefix: "/enfyra/api", // Optional, defaults to '/enfyra/api'
-  },
-});
+export default enfyraConfig;
 ```
 
 **Configuration Options:**
 
 - `apiUrl` (required): The base URL of your Enfyra API backend
 - `apiPrefix` (optional): The API prefix for Enfyra routes. Defaults to `/enfyra/api`
+
+**Note:** The SDK automatically loads this configuration file when imported. You don't need to modify `next.config.ts` at all!
 
 ### 2. Environment Variables
 
@@ -730,91 +726,82 @@ All instances of `useEnfyraAuth` share the same global authentication state. Whe
 ✅ **Error Handling** - Automatic error management with custom handlers  
 ✅ **Reactive State** - Built-in loading, error, and data states  
 ✅ **Query Parameters** - Flexible query parameter handling  
-✅ **Zero Config** - Files automatically copied during installation
+✅ **Zero Config** - Files automatically created/injected during installation
+✅ **Non-Intrusive** - Never overwrites your existing code, only injects integration
 
 ## How It Works
 
-1. **Installation / Scaffolding**: The package automatically copies proxy and auth API routes:
-   - `app/enfyra/api/login/route.ts` - Always overwritten (managed by SDK, cannot be customized)
-   - `app/enfyra/api/logout/route.ts` - Always overwritten (managed by SDK, cannot be customized)
-   - `proxy.ts` - Only copied if it doesn't exist (can be customized)
-2. **Proxy**: Handles all `/enfyra/api/**` and `/assets/**` requests, forwards to Enfyra backend. You can customize `proxy.ts` by adding your own routes before calling `enfyraProxy()`.
-3. **Token Management**: Automatically validates and refreshes access tokens
-4. **API Routes**: Login/logout routes handle authentication cookies (managed by SDK)
+1. **Installation / Scaffolding**: The package automatically sets up proxy and config:
+   - `proxy.ts` - Automatically injected with Enfyra SDK integration (preserves your existing code)
+   - `enfyra.config.ts` - Only copied if it doesn't exist (can be customized)
+2. **Configuration**: The SDK reads configuration from `enfyra.config.ts` file, keeping it separate from Next.js config
+3. **Proxy**: Handles all `/enfyra/api/**` and `/assets/**` requests, including login/logout routes. Enfyra routes are checked first, then your custom routes in `proxy.ts` run.
+4. **Token Management**: Automatically validates and refreshes access tokens
+5. **Transparent Integration**: No route files needed - everything is handled in `proxy.ts` for maximum transparency
 
 ## Customization
 
-### Customizing Next.js Config with Enfyra Config
+### Customizing Enfyra Config
 
-The `withEnfyra` plugin merges your existing Next.js configuration with Enfyra SDK configuration. You can pass any Next.js config options alongside the Enfyra config:
+All Enfyra SDK configuration is in `enfyra.config.ts` file, separate from Next.js config:
 
 ```typescript
-// next.config.ts
+// enfyra.config.ts
+import type { EnfyraConfig } from '@enfyra/sdk-next/plugin';
+
+const enfyraConfig: EnfyraConfig = {
+  apiUrl: process.env.ENFYRA_API_URL || 'https://api.enfyra.com',
+  apiPrefix: '/enfyra/api', // Optional, defaults to '/enfyra/api'
+};
+
+export default enfyraConfig;
+```
+
+### No Next.js Config Changes Needed
+
+The SDK automatically loads configuration from `enfyra.config.ts` when imported. You don't need to modify your `next.config.ts` at all:
+
+```typescript
+// next.config.ts - No changes needed!
 import type { NextConfig } from "next";
-import { withEnfyra } from "@enfyra/sdk-next/plugin";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   images: {
     domains: ["example.com"],
   },
-  async rewrites() {
-    return [
-      {
-        source: "/custom-api/:path*",
-        destination: "/api/:path*",
-      },
-    ];
-  },
+  // ... your other Next.js config options
 };
 
-export default withEnfyra(nextConfig, {
-  enfyraSDK: {
-    apiUrl: process.env.ENFYRA_API_URL!,
-    apiPrefix: "/enfyra/api",
-  },
-});
+export default nextConfig;
 ```
 
-The plugin will:
+The SDK will:
 
-- Merge your Next.js config with Enfyra config
-- Inject Enfyra environment variables (`ENFYRA_API_URL`, `ENFYRA_API_PREFIX`, etc.) into your Next.js config
-- Preserve all your existing Next.js configuration options
+- Automatically load configuration from `enfyra.config.ts` when imported
+- Automatically set environment variables from the config file
+- Work seamlessly without any Next.js config modifications
 
 ### Customizing Proxy/Middleware
 
-You can customize the proxy behavior by editing the `proxy.ts` file. **Note:** Once `proxy.ts` exists, the SDK will not overwrite it, so your customizations are preserved. The proxy acts as a wrapper around Enfyra's proxy handler, allowing you to add custom logic before or after Enfyra routes are processed.
+The SDK automatically injects Enfyra proxy handling into your `proxy.ts` file. Your existing code is preserved and runs after Enfyra routes are checked.
 
-#### Basic Custom Proxy
+#### How It Works
 
-```typescript
-// proxy.ts
-import { NextRequest, NextResponse } from "next/server";
-import { enfyraProxy } from "@enfyra/sdk-next/proxy";
+When you install the SDK, it automatically:
+1. **If `proxy.ts` doesn't exist**: Creates a new file with Enfyra integration
+2. **If `proxy.ts` already exists**: Injects Enfyra proxy handling at the beginning of your `proxy()` function
+3. Your custom code continues to work as before - nothing is overwritten
 
-export async function proxy(request: NextRequest) {
-  return enfyraProxy(request);
-}
-
-export const config = {
-  matcher: ["/enfyra/api/:path*", "/assets/:path*"],
-};
-```
-
-#### Custom Proxy with Route Handling
-
-Handle custom routes before passing to Enfyra SDK:
+#### Example: Custom Proxy with Enfyra Integration
 
 ```typescript
-// proxy.ts
+// proxy.ts (your existing file)
 import { NextRequest, NextResponse } from "next/server";
-import { enfyraProxy } from "@enfyra/sdk-next/proxy";
 
 export async function proxy(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-
-  if (pathname.startsWith("/api/custom")) {
+  // Your custom routes (handled first)
+  if (request.nextUrl.pathname.startsWith("/api/custom")) {
     const authHeader = request.headers.get("authorization");
     if (!authHeader) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -822,7 +809,45 @@ export async function proxy(request: NextRequest) {
     return NextResponse.json({ message: "Custom route handled" });
   }
 
-  return enfyraProxy(request);
+  // Enfyra SDK routes are automatically handled here
+  // (injected by SDK, but shown for clarity)
+  // const enfyraResponse = await enfyraProxy(request);
+  // if (enfyraResponse) return enfyraResponse;
+
+  return NextResponse.next();
+}
+
+export const config = {
+  matcher: ["/enfyra/api/:path*", "/assets/:path*", "/api/custom/:path*"],
+};
+```
+
+**After SDK injection, your file becomes:**
+
+```typescript
+// proxy.ts (automatically modified by SDK)
+import { NextRequest, NextResponse } from "next/server";
+import { createEnfyraProxy } from '@enfyra/sdk-next/proxy';
+import { getEnfyraSDKConfig } from '@enfyra/sdk-next/constants/config';
+
+const enfyraConfig = getEnfyraSDKConfig();
+const enfyraProxy = createEnfyraProxy(enfyraConfig);
+
+export async function proxy(request: NextRequest) {
+  // Enfyra SDK routes (automatically injected at the beginning)
+  const enfyraResponse = await enfyraProxy(request);
+  if (enfyraResponse) return enfyraResponse;
+
+  // Your custom routes (preserved - runs after Enfyra routes)
+  if (request.nextUrl.pathname.startsWith("/api/custom")) {
+    const authHeader = request.headers.get("authorization");
+    if (!authHeader) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    return NextResponse.json({ message: "Custom route handled" });
+  }
+
+  return NextResponse.next();
 }
 
 export const config = {
@@ -832,10 +857,12 @@ export const config = {
 
 **Important Notes:**
 
+- Your existing `proxy.ts` code is **never overwritten** - only Enfyra integration is injected at the beginning
+- Enfyra routes are checked first, then your custom routes run
+- If `proxy.ts` doesn't exist, the SDK creates it with a basic Enfyra setup
 - Next.js requires `config.matcher` to be a static array - you cannot use spread operators or variables
 - You must list all matcher patterns directly in the array
-- The proxy function should always call `enfyraProxy()` for Enfyra routes to work correctly
-- Custom routes should be handled before calling `enfyraProxy()`
+- The SDK generates code directly - no template files are used or copied
 
 ## License
 

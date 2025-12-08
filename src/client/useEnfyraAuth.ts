@@ -43,7 +43,6 @@ export function useEnfyraAuth(): UseEnfyraAuthReturn {
         const queryParams: any = {};
 
         if (options?.fields && options.fields.length > 0) {
-          // Backend expects comma-separated fields, e.g. "role.*"
           queryParams.fields = options.fields.join(',');
         }
 
@@ -56,7 +55,6 @@ export function useEnfyraAuth(): UseEnfyraAuthReturn {
           return;
         }
 
-        // Support both `{ data: User[] }` and direct `User` responses
         const anyResult = result as any;
         const user =
           Array.isArray(anyResult?.data) && anyResult.data.length > 0

@@ -9,7 +9,7 @@ export default defineConfig([
     splitting: false,
     sourcemap: true,
     clean: true,
-    external: ['next', 'react', 'react-dom'],
+    external: ['next', 'react', 'react-dom', 'node:fs', 'fs', 'node:path', 'path'],
   },
   // Plugin entry
   {
@@ -68,6 +68,7 @@ export default defineConfig([
       proxy: 'src/proxy.ts',
       'routes/login': 'src/routes/login.ts',
       'routes/logout': 'src/routes/logout.ts',
+      'routes/handler': 'src/routes/handler.ts',
     },
     format: ['cjs', 'esm'],
     dts: true,

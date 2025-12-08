@@ -1,6 +1,6 @@
 {
   "name": "@enfyra/sdk-next",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Next.js SDK for Enfyra CMS",
   "repository": {
     "type": "git",
@@ -9,11 +9,12 @@
   "homepage": "https://github.com/enfyra/sdk-next#readme",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "module": "./dist/index.mjs",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
-      "require": "./dist/index.cjs"
+      "require": "./dist/index.js"
     },
     "./plugin": {
       "types": "./dist/plugin.d.ts",
@@ -54,6 +55,11 @@
       "types": "./dist/routes/logout.d.ts",
       "import": "./dist/routes/logout.mjs",
       "require": "./dist/routes/logout.cjs"
+    },
+    "./routes/handler": {
+      "types": "./dist/routes/handler.d.ts",
+      "import": "./dist/routes/handler.mjs",
+      "require": "./dist/routes/handler.cjs"
     }
   },
   "files": [

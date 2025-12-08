@@ -17,8 +17,8 @@ export async function fetchEnfyraApi<T = any>(
   path: string,
   options: FetchEnfyraApiOptions = {}
 ): Promise<{ data: T | null; error: ApiError | null }> {
-  const apiUrl = process.env.ENFYRA_API_URL;
-  const apiPrefix = process.env.ENFYRA_API_PREFIX || ENFYRA_API_PREFIX;
+  const { getEnfyraSDKConfig } = await import('../constants/config');
+  const { apiUrl, apiPrefix } = getEnfyraSDKConfig();
 
   if (!apiUrl) {
     const apiError: ApiError = {
@@ -46,7 +46,6 @@ export async function fetchEnfyraApi<T = any>(
       try {
         currentAccessToken = await refreshAccessToken(refreshToken, apiUrl);
       } catch (error) {
-        // Token refresh failed, proceed without token
       }
     }
   }

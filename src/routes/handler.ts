@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { $fetch } from 'ofetch';
 import {
   ACCESS_TOKEN_KEY,
@@ -8,10 +8,65 @@ import {
 import { joinUrl } from '../utils/url';
 import { getEnfyraSDKConfig } from '../constants/config';
 
-export async function POST(
-  request: any,
-  _context: { params: Promise<{}> }
+export async function GET(
+  request: NextRequest,
+  context: { params: Promise<{ path?: string[] }> }
 ) {
+  return handleRequest(request, context, 'GET');
+}
+
+export async function POST(
+  request: NextRequest,
+  context: { params: Promise<{ path?: string[] }> }
+) {
+  return handleRequest(request, context, 'POST');
+}
+
+export async function PUT(
+  request: NextRequest,
+  context: { params: Promise<{ path?: string[] }> }
+) {
+  return handleRequest(request, context, 'PUT');
+}
+
+export async function PATCH(
+  request: NextRequest,
+  context: { params: Promise<{ path?: string[] }> }
+) {
+  return handleRequest(request, context, 'PATCH');
+}
+
+export async function DELETE(
+  request: NextRequest,
+  context: { params: Promise<{ path?: string[] }> }
+) {
+  return handleRequest(request, context, 'DELETE');
+}
+
+async function handleRequest(
+  request: NextRequest,
+  context: { params: Promise<{ path?: string[] }> },
+  method: string
+) {
+  const params = await context.params;
+  const pathSegments = params?.path || [];
+  const pathname = '/' + pathSegments.join('/');
+
+  if (pathname === '/login' && method === 'POST') {
+    return handleLogin(request);
+  }
+
+  if (pathname === '/logout' && method === 'POST') {
+    return handleLogout();
+  }
+
+  return NextResponse.json(
+    { error: 'Route not found' },
+    { status: 404 }
+  );
+}
+
+async function handleLogin(request: NextRequest) {
   const { apiUrl } = getEnfyraSDKConfig();
   
   if (!apiUrl) {
@@ -70,5 +125,15 @@ export async function POST(
       { status: statusCode }
     );
   }
+}
+
+function handleLogout() {
+  const response = NextResponse.json({ success: true });
+
+  response.cookies.delete(ACCESS_TOKEN_KEY);
+  response.cookies.delete(REFRESH_TOKEN_KEY);
+  response.cookies.delete(EXP_TIME_KEY);
+
+  return response;
 }
 
