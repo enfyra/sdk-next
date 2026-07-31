@@ -1,6 +1,6 @@
 {
   "name": "@enfyra/sdk-next",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Enfyra SDK for Next.js App Router — one-line config preset, providerless client hooks, request-scoped server client",
   "type": "module",
   "engines": {
