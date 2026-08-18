@@ -1,7 +1,8 @@
 {
   "name": "@enfyra/sdk-next",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Enfyra SDK for Next.js App Router — one-line config preset, providerless client hooks, request-scoped server client",
+  "license": "MIT",
   "type": "module",
   "engines": {
     "node": ">=18.18"
@@ -53,7 +54,7 @@
     "react": ">=18 <20"
   },
   "dependencies": {
-    "@enfyra/sdk-core": "0.1.10",
+    "@enfyra/sdk-core": "0.1.11",
     "server-only": "^0.0.1",
     "zustand": "^5.0.0"
   },
